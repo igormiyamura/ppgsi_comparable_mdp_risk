@@ -70,35 +70,7 @@ class PolynomialFunction:
             return np.power(v, 1/beta)
         else:
             raise Exception(f'[get_value_function]: Beta [{beta}] not found.')
-        
-    def _func_beta_10(self, p: float) -> float:
-        """Auxiliar function to calculate beta = 10 expansion.
-
-        Args:
-            p (float): probability
-
-        Returns:
-            float: value of expansion
-        """        
-        return -p**9 + 1022*p**8 - 55980*p**7 + 818520*p**6 - 5103000*p**5 + 16435440*p**4 - \
-            29635200*p**3 + 30240000*p**2 - 16329600*p + 3628800
-
-    def _func_beta_20(self, p: float) -> float:
-        """Auxiliar function to calculate beta = 20 expansion.
-
-        Args:
-            p (float): probability
-
-        Returns:
-            float: value of expansion
-        """        
-        return (-p**19 + 1048574*p**18 - 3483638676*p**17 + 1085570781624*p**16 - 89904730860000*p**15 + \
-                    3100376804676480*p**14 - 56163512390086080*p**13 + 611692004959217280*p**12 - 4358654246117808000*p**11 + \
-                    21473732319740064000*p**10 - 75875547089306764800*p**9 + 196877625020902425600*p**8 - \
-                    380275818414395904000*p**7 + 549443323130397696000*p**6 - 591499300737945600000*p**5 + \
-                    467644314338353152000*p**4 - 263665755136143360000*p**3 + 100357207837286400000*p**2 - \
-                    23112569077678080000*p + 2432902008176640000)
-        
+       
     def get_empirical_equivalent_cost(self, p: float, c: float, p_line: float, beta: int=2, th:float=0.1, _quiet: bool=True) -> float:
         """Get the empirical equivalent cost from Polynomial Utility Function, the return of this function must be equal to the
         [get_equivalent_cost] for the same parameters.
@@ -130,6 +102,34 @@ class PolynomialFunction:
             C\': {round(np.power(value, 1/beta), 2)}""")
         
         return np.round(np.power(value, 1/beta), 4)
+        
+    def _func_beta_10(self, p: float) -> float:
+        """Auxiliar function to calculate beta = 10 expansion.
+
+        Args:
+            p (float): probability
+
+        Returns:
+            float: value of expansion
+        """        
+        return -p**9 + 1022*p**8 - 55980*p**7 + 818520*p**6 - 5103000*p**5 + 16435440*p**4 - \
+            29635200*p**3 + 30240000*p**2 - 16329600*p + 3628800
+
+    def _func_beta_20(self, p: float) -> float:
+        """Auxiliar function to calculate beta = 20 expansion.
+
+        Args:
+            p (float): probability
+
+        Returns:
+            float: value of expansion
+        """        
+        return (-p**19 + 1048574*p**18 - 3483638676*p**17 + 1085570781624*p**16 - 89904730860000*p**15 + \
+                    3100376804676480*p**14 - 56163512390086080*p**13 + 611692004959217280*p**12 - 4358654246117808000*p**11 + \
+                    21473732319740064000*p**10 - 75875547089306764800*p**9 + 196877625020902425600*p**8 - \
+                    380275818414395904000*p**7 + 549443323130397696000*p**6 - 591499300737945600000*p**5 + \
+                    467644314338353152000*p**4 - 263665755136143360000*p**3 + 100357207837286400000*p**2 - \
+                    23112569077678080000*p + 2432902008176640000)
         
     def _empirical_value_function(self, c: float, p: float, beta: int, th: float=0.1) -> float:
         """Calculate the empirical value function of Polynomial Utility Function.
@@ -167,3 +167,5 @@ class PolynomialFunction:
             t += 1
             
         return sum_prob
+    
+    
