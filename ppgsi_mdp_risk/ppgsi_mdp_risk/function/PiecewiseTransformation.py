@@ -8,8 +8,13 @@ class PiecewiseTransformation:
     def get_value_function(self, p: float, c: float, beta: int=2) -> float:
         return 0
             
-    def get_equivalent_cost(self, p: float, c: float, p_line: float, beta: int=2) -> float:
-        return 0
+    def get_equivalent_cost(self, p: float, c: float, p_line: float, lim: str='inf') -> float:
+        if lim == 'inf':
+            return (-p*p_line*c + p_line*c) / (-p*p_line + p)
+        elif lim == 'sup':
+            return c
+        else:
+            raise Exception('Limite não definido.')
        
     def get_empirical_equivalent_cost(self, p: float, c: float, p_line: float, k: float, gamma: float, alpha: float) -> float:
         v1 = c * (2*k*p - k + 1) 

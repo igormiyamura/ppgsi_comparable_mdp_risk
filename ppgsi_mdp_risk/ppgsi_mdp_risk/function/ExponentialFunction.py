@@ -5,11 +5,17 @@ class ExponentialFunction:
     def __init__(self) -> None:
         pass
     
-    def get_value_function(self, p: float, c: float, beta: int=2) -> float:
+    def get_value_function(self, p: float, c: float) -> float:
         return 0
             
-    def get_equivalent_cost(self, p: float, c: float, p_line: float, beta: int=2) -> float:
-        return 0
+    def get_equivalent_cost(self, p: float, c: float, p_line: float, lim: str='inf') -> float:
+        if lim == 'inf':
+            l_extreme = self._get_lambda_extreme(p, c)
+            return -np.log(1-p_line) / l_extreme
+        elif lim == 'sup':
+            return c
+        else:
+            raise Exception('Limite não definido.')
        
     def get_empirical_equivalent_cost(self, p: float, c: float, p_line: float, l: float) -> float:
         v1 = -np.exp(l*c)*p

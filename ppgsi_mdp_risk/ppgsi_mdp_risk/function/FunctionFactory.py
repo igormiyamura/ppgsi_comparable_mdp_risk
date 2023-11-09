@@ -1,5 +1,5 @@
 
-from ppgsi_mdp_risk.function import PolynomialFunction, ExponentialFunction, PiecewiseTransformation
+from ppgsi_mdp_risk.function import PolynomialFunction, ExponentialFunction, PiecewiseTransformation, VAR
 
 class FunctionFactory:
     def __init__(self) -> None:
@@ -23,6 +23,8 @@ class FunctionFactory:
             return ExponentialFunction.ExponentialFunction()
         elif nm_function == 'PiecewiseTransformation':
             return PiecewiseTransformation.PiecewiseTransformation()
+        elif nm_function == 'VAR':
+            return VAR.VAR()
         else:
             raise Exception(f'[get_function]: Function name not identified [{nm_function}]')
     
