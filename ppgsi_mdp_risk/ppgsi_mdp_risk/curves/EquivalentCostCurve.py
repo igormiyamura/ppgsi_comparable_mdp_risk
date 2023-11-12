@@ -47,43 +47,14 @@ class EquivalentCostCurve:
         for p_line in self.range_prob:
             p_line_rounded = round(p_line, 2)
             
-            if self._nm_function == 'PolynomialFunction':
-                res[p_line_rounded] = \
-                    self._obj_function.get_empirical_equivalent_cost(
-                        p=p, 
-                        c=c, 
-                        p_line=p_line, 
-                        beta=kwargs['beta'], 
-                        th=kwargs['th'], 
-                        _quiet=True
-                    )
-            elif self._nm_function == 'ExponentialFunction':
-                res[p_line_rounded] = \
-                    self._obj_function.get_empirical_equivalent_cost(
-                        p=p, 
-                        c=c, 
-                        p_line=p_line, 
-                        l=kwargs['l']
-                    )
-            elif self._nm_function == 'PiecewiseTransformation':
-                res[p_line_rounded] = \
-                    self._obj_function.get_empirical_equivalent_cost(
-                        p=p, 
-                        c=c, 
-                        p_line=p_line, 
-                        k=kwargs['k'],
-                        gamma=kwargs['gamma'],
-                        alpha=kwargs['alpha']
-                    )
-            elif self._nm_function == 'VAR':
-                res[p_line_rounded] = \
-                    self._obj_function.get_empirical_equivalent_cost(
-                        p=p, 
-                        c=c, 
-                        p_line=p_line, 
-                        alpha=kwargs['alpha']
-                    )
-                
+            res[p_line_rounded] = \
+                self._obj_function.get_empirical_equivalent_cost(
+                    p=p,
+                    c=c,
+                    p_line=p_line,
+                    **kwargs
+                )
+            
         return res
           
     def get_multi_limit_curve(self, c: float, list_p: float, **kwargs) -> dict:
@@ -130,42 +101,13 @@ class EquivalentCostCurve:
             for p_line in self.range_prob:
                 p_line_rounded = round(p_line, 2)
                 
-                if self._nm_function == 'PolynomialFunction':
-                    res[p][p_line_rounded] = \
-                        self._obj_function.get_empirical_equivalent_cost(
-                            p=p, 
-                            c=c, 
-                            p_line=p_line, 
-                            beta=kwargs['beta'], 
-                            th=kwargs['th'], 
-                            _quiet=True
-                        )
-                elif self._nm_function == 'ExponentialFunction':
-                    res[p][p_line_rounded] = \
-                        self._obj_function.get_empirical_equivalent_cost(
-                            p=p, 
-                            c=c, 
-                            p_line=p_line, 
-                            l=kwargs['l']
-                        )
-                elif self._nm_function == 'PiecewiseTransformation':
-                    res[p][p_line_rounded] = \
-                        self._obj_function.get_empirical_equivalent_cost(
-                            p=p, 
-                            c=c, 
-                            p_line=p_line, 
-                            k=kwargs['k'],
-                            gamma=kwargs['gamma'],
-                            alpha=kwargs['alpha']
-                        )
-                elif self._nm_function == 'VAR':
-                    res[p][p_line_rounded] = \
-                        self._obj_function.get_empirical_equivalent_cost(
-                            p=p, 
-                            c=c, 
-                            p_line=p_line, 
-                            alpha=kwargs['alpha']
-                        )
+                res[p][p_line_rounded] = \
+                    self._obj_function.get_empirical_equivalent_cost(
+                        p=p,
+                        c=c,
+                        p_line=p_line,
+                        **kwargs
+                    )
                 
         return res
     
