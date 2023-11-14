@@ -27,7 +27,7 @@ class EquivalentCostCurve:
                     p=p, 
                     c=c, 
                     p_line=p_line, 
-                    lim=kwargs['lim']
+                    **kwargs
                 )
                 
         return res

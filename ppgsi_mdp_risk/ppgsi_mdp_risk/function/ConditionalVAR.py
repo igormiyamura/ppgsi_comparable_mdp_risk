@@ -1,7 +1,7 @@
 
 import numpy as np
 
-class VAR:
+class ConditionalVAR:
     def __init__(self) -> None:
         pass
     
@@ -9,16 +9,7 @@ class VAR:
         pass
             
     def get_equivalent_cost(self, p: float, c: float, p_line: float, alpha: float, continuous: bool=False) -> float:
-        t = np.log((1 - alpha)) / np.log(1 - p)
-        t_line = np.log((1 - alpha)) / np.log(1 - p_line)
-        
-        if not continuous:
-            t = np.round(t, 0)
-            t_line = np.round(t_line, 0)
-            
-        res = t * c / t_line
-        
-        return res
+        pass
        
     def get_empirical_equivalent_cost(self, p: float, c: float, p_line: float, alpha: float, continuous: bool=False, timestep: float=0.1) -> float:
         if continuous:
@@ -48,3 +39,24 @@ class VAR:
             
         return t
     
+    def _cvar_sum_prob_converge(self, p: float, beta: int, th: float=0.1) -> float:
+        """Calculate the convergence of sum of probabilities in Polynomial Utility Function equation.
+
+        Args:
+            p (float): probability
+            beta (int): exponential number
+            th (float, optional): threashold. Defaults to 0.1.
+
+        Returns:
+            float: value of convergence
+        """        
+        error, sum_prob = np.inf, 0
+        t = 1
+        while (error > th) or (t < 1000):
+            sum_prob_ant = sum_prob
+            sum_prob += t**beta * (1 - p)**(t-1)
+            
+            error = sum_prob - sum_prob_ant
+            t += 1
+            
+        return sum_prob

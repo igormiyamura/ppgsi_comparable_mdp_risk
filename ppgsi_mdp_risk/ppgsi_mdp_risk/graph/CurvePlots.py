@@ -7,7 +7,7 @@ class CurvePlots:
     def __init__(self, lib='matplotlib') -> None:
         self._lib = lib
         
-    def plot_curve(self, dict_curves: dict, filter_prob: float=-1, less_equal=True, param_axis=None) -> None:
+    def plot_curve(self, dict_curves: dict, filter_prob: float=-1, less_equal=True, param_axis=None, nm_fator_risco='fator_risco') -> None:
         """Plot curve
 
         Args:
@@ -20,8 +20,8 @@ class CurvePlots:
         if param_axis is None:
             fig, ax = plt.subplots()
         
-        for beta in dict_curves:
-            curve = dict_curves[beta]
+        for fator_risco in dict_curves:
+            curve = dict_curves[fator_risco]
             
             if filter_prob != -1:
                 if less_equal:
@@ -31,9 +31,9 @@ class CurvePlots:
             
             if self._lib == 'matplotlib':
                 if param_axis is None:
-                    ax.plot(curve.keys(), curve.values(), label=f'beta={beta}')
+                    ax.plot(curve.keys(), curve.values(), label=f'{nm_fator_risco}={fator_risco}')
                 else:
-                    param_axis.plot(curve.keys(), curve.values(), label=f'beta={beta}')
+                    param_axis.plot(curve.keys(), curve.values(), label=f'{nm_fator_risco}={fator_risco}')
                 
         if param_axis is None:
             fig.legend(loc='upper left')
