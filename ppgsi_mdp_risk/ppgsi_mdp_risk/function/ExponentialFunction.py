@@ -9,10 +9,10 @@ class ExponentialFunction:
         return 0
             
     def get_equivalent_cost(self, p: float, c: float, p_line: float, lim: str='inf') -> float:
-        if lim == 'inf':
+        if lim == 'sup':
             l_extreme = self._get_lambda_extreme(p, c)
             return -np.log(1-p_line) / l_extreme
-        elif lim == 'sup':
+        elif lim == 'inf':
             return c
         else:
             raise Exception('Limite não definido.')
