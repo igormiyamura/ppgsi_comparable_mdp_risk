@@ -1,11 +1,27 @@
 
+# Matplotlib Imports
 import matplotlib.pyplot as plt
+
+# Plotly Imports
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Other Imports
 import numpy as np, pandas as pd
 
 class CurvePlots:
     def __init__(self, lib='matplotlib') -> None:
         self._lib = lib
+        self._colors = {
+            'EXP (inf)': 'blue',
+            'EXP (sup)': 'magenta',
+            'PWL (inf)': 'green',
+            'PWL (sup)': 'black',
+            'VAR (inf)': 'orange',
+            'VAR (sup)': 'red',
+            'CVAR (inf)': 'maroon',
+            'CVAR (sup)': 'olive'
+        }
         
     def plot_curve(self, dict_curves: dict, filter_prob: float=-1, less_equal=True, param_axis=None, nm_fator_risco='f(.)', show_legend=True) -> None:
         """Plot curve
@@ -89,24 +105,43 @@ class CurvePlots:
             dict_curves (dict): dictionary with all the curves
             list_p (list): list of all probabilities
         """
-        fig, axs = plt.subplots(3, 3, figsize=(16,12))
+        if self._lib == 'matplotlib':
+            fig, axs = plt.subplots(3, 3, figsize=(16,12))
+        elif self._lib == 'plotly':
+            fig = go.Figure()
+            fig = make_subplots(rows=3, cols=3, width=1600, height=1200)
         
         for risk_factor in dict_curves:
             c1, c2 = 0, 0
             for p in dict_curves[risk_factor]:
                 curve = dict_curves[risk_factor][p]
-                axs[c1, c2].plot(curve.keys(), curve.values(), label=f'f()={risk_factor}')
+                
+                if self._lib == 'matplotlib':
+                    axs[c1, c2].plot(curve.keys(), curve.values(), label=f'f()={risk_factor}')
+                elif self._lib == 'plotly':
+                    fig.add_trace(go.Scatter(
+                        x=curve.keys(),
+                        y=curve.values(),
+                        name=f'f()={risk_factor}',
+                        line_color=self._colors[f'f()={risk_factor}'],
+                        legendgroup='group1'),
+                        row=c1, col=c2
+                    )
             
                 c1, c2 = self._define_counting(c1, c2, 3)
                 
         c1, c2 = 0, 0
         for p in list_p:
-            axs[c1, c2].axvline(x=p, color='green', linestyle='--')
-            axs[c1, c2].set_title(f'Região ótima - Probabilidade [{np.round(p, 1)}]')
+            if self._lib == 'matplotlib':
+                axs[c1, c2].axvline(x=p, color='green', linestyle='--')
+                axs[c1, c2].set_title(f'Região ótima - Probabilidade [{np.round(p, 1)}]')
+            # elif self._lib == 'plotly':
+                
             c1, c2 = self._define_counting(c1, c2, 3)
             
-        handles, labels = axs[0, 0].get_legend_handles_labels()
-        fig.legend(handles, labels)
+        if self._lib == 'matplotlib':
+            handles, labels = axs[0, 0].get_legend_handles_labels()
+            fig.legend(handles, labels)
             
     def plot_all_curves_subplots_multiple_probabilities(self, dict_curves: dict, list_p: list) -> None:
         """Multiple probabilities subplots to verify the properties of each curve changing the
@@ -116,25 +151,59 @@ class CurvePlots:
             dict_curves (dict): dictionary with all the curves
             list_p (list): list of all probabilities
         """
-        fig, axs = plt.subplots(3, 3, figsize=(16,12))
+        
+        if self._lib == 'matplotlib':
+            fig, axs = plt.subplots(3, 3, figsize=(16,12))
+        elif self._lib == 'plotly':
+            titles = []
+            for p in list_p:
+                titles.append(f'Região ótima - Probabilidade [{np.round(p, 1)}]')
+                
+            fig = go.Figure() 
+            fig = make_subplots(rows=3, cols=3, subplot_titles=titles)
         
         for func in dict_curves:
             for risk_factor in dict_curves[func]:
-                c1, c2 = 0, 0
+                c1, c2, show_legend = 0, 0, True
                 for p in dict_curves[func][risk_factor]:
                     curve = dict_curves[func][risk_factor][p]
-                    axs[c1, c2].plot(curve.keys(), curve.values(), label=f'{func} ({round(risk_factor, 2)})')
-                
+                    risk_factor_label = round(risk_factor, 2) if type(risk_factor) is np.float64 else risk_factor
+                    
+                    if self._lib == 'matplotlib':
+                        axs[c1, c2].plot(curve.keys(), curve.values(), label=f'{func} ({risk_factor_label})')
+                    elif self._lib == 'plotly':
+                        fig.add_trace(go.Scatter(
+                            x=list(curve.keys()),
+                            y=list(curve.values()),
+                            name=f'{func} ({risk_factor_label})',
+                            legendgroup=f'{func} ({risk_factor_label})',
+                            line_color=self._colors[f'{func} ({risk_factor_label})'],
+                            showlegend=show_legend),
+                            row=c1+1, col=c2+1
+                        )
+                        show_legend=False
+                    
                     c1, c2 = self._define_counting(c1, c2, 3)
                 
         c1, c2 = 0, 0
         for p in list_p:
-            axs[c1, c2].axvline(x=p, color='green', linestyle='--')
-            axs[c1, c2].set_title(f'Região ótima - Probabilidade [{np.round(p, 1)}]')
+            if self._lib == 'matplotlib':
+                axs[c1, c2].axvline(x=p, color='green', linestyle='--')
+                axs[c1, c2].set_title(f'Região ótima - Probabilidade [{np.round(p, 1)}]')
+            elif self._lib == 'plotly':
+                fig.add_vrect(x0=p, x1=p, row=c1+1, col=c2+1, opacity=0.5, line_dash="dot")
+                
+                
             c1, c2 = self._define_counting(c1, c2, 3)
             
-        handles, labels = axs[0, 0].get_legend_handles_labels()
-        fig.legend(handles, labels)
+        if self._lib == 'matplotlib':
+            handles, labels = axs[0, 0].get_legend_handles_labels()
+            fig.legend(handles, labels)
+        elif self._lib == 'plotly':
+            fig.update_layout(
+                width=1600, height=1200
+            )
+            fig.show()
             
     def _define_counting(self, c1, c2, max_c2=3):
         c2 += 1

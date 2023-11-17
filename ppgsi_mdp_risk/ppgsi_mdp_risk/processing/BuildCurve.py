@@ -141,6 +141,9 @@ class BuildCurve:
         self._cp.plot_all_curves_subplots(_empirical_result_min, filter_prob=0.5)
         self._cp.plot_all_curves_subplots(_empirical_result_max, filter_prob=0.5)
     
+    def build_all_graph_limits_multi_prob(self, _results, list_p):
+        self._cp.plot_all_curves_subplots_multiple_probabilities(_results, list_p)
+    
     def _get_params(self, nm_function, rf, _obj_function, **kwargs):
         if nm_function == 'ExponentialFunction': 
             params = {'l': rf}
@@ -150,6 +153,8 @@ class BuildCurve:
         elif nm_function == 'PolynomialFunction': 
             params = {'beta': rf}
         elif nm_function == 'VAR': 
+            params = {'alpha': rf}
+        elif nm_function == 'ConditionalVAR':
             params = {'alpha': rf}
         else:
             raise Exception(f'[_get_params]: Funcao não definida: [{nm_function}]')
