@@ -10,9 +10,9 @@ class VAR:
             
     def get_equivalent_cost(self, p: float, c: float, p_line: float, lim: str='inf') -> float:
         if lim == 'inf':
-            return 
+            return c
         elif lim == 'sup':
-            return self.get_empirical_equivalent_cost(p, c, p_line, alpha=0.999, summation=False, continuous=True, timestep=None)
+            return (c * np.log(1-p_line) * p) / (np.log(1-p) * p_line)
        
     def get_empirical_equivalent_cost(self, p: float, c: float, p_line: float, alpha: float, summation: bool=False, continuous: bool=False, timestep: float=0.1) -> float:
         if summation:
@@ -23,8 +23,8 @@ class VAR:
                 t = self._get_discrete_time_to_var(p, alpha)
                 t_line = self._get_discrete_time_to_var(p_line, alpha)
         else:
-            t = np.emath.logn((1-p), (alpha * p)) * p
-            t_line = np.emath.logn((1-p_line), (alpha * p_line)) * p_line
+            t = self._get_log_nth_term(p, alpha)
+            t_line = self._get_log_nth_term(p_line, alpha)
             # t = (np.log((1 - alpha) * p) / np.log(1 - p)) * p
             # t_line = (np.log((1 - alpha) * p_line) / np.log(1 - p_line)) * p_line
             
@@ -51,4 +51,8 @@ class VAR:
             t += timestep
             
         return t
+    
+    def _get_log_nth_term(self, p: float, alpha: float):
+        return np.emath.logn((1-p), alpha * p - p + 1) 
+    
     
