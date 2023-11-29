@@ -32,7 +32,7 @@ class VAR:
                 t = np.round(t, 0)
                 t_line = np.round(t_line, 0)
         
-        return t * c / t_line
+        return c * t / t_line
 
     def _get_discrete_time_to_var(self, p: float, alpha: float) -> float:
         t, _alpha = 1, 1
@@ -53,6 +53,7 @@ class VAR:
         return t
     
     def _get_log_nth_term(self, p: float, alpha: float):
-        return np.emath.logn((1-p), alpha * p - p + 1) 
+        return np.emath.logn((1-p), alpha * p - p + 1)
+        #return np.emath.logn((1-p), alpha) 
     
     

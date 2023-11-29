@@ -79,6 +79,35 @@ class CurvePlots:
         
         plt.show()
         
+    def plot_curve_subplots_all_methods(self, _analytical_result: dict, filter_prob: float=-1) -> None:
+        """Subplots of curves: (i) full x axis; (ii) less than `filter_prob`; (iii) greater than `filter_prob`
+
+        Args:
+            _analytical_result (dict): dictionary with all the curves
+            filter_prob (float, optional): filter less or greater than some probability (x axis). Defaults to -1.
+        """        
+        
+        fig, ax = plt.subplots(4, 3, figsize=(18, 16))
+        methods = set([m.split('-')[0] for m in _analytical_result.keys()])
+        
+        for i, method in enumerate(methods):
+            dict_curves = {}
+            dict_curves[f'{method}-min'] = _analytical_result[f'{method}-min']
+            dict_curves[f'{method}-max'] = _analytical_result[f'{method}-max']
+            
+            self.plot_curve(dict_curves, -1, True, ax[i, 0], show_legend=False)
+            self.plot_curve(dict_curves, filter_prob, True, ax[i, 1], show_legend=False)
+            self.plot_curve(dict_curves, filter_prob, False, ax[i, 2], show_legend=False)
+            
+            handles, labels = ax[i, 0].get_legend_handles_labels()
+            ax[i, 0].legend(handles, labels) 
+            
+            ax[i, 0].title.set_text(f'{method} Curve')
+            ax[i, 1].title.set_text(f'{method} Curve (p\' < {filter_prob})')
+            ax[i, 2].title.set_text(f'{method} Curve (p\' > {filter_prob})')
+        
+        plt.show()
+        
     def plot_all_curves_subplots(self, dict_curves: dict, filter_prob: float=-1) -> None:
         """Subplots of curves: (i) full x axis; (ii) less than `filter_prob`; (iii) greater than `filter_prob`
 

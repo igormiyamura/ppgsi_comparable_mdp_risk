@@ -18,7 +18,7 @@ class ExponentialFunction:
             raise Exception('Limite não definido.')
        
     def get_empirical_equivalent_cost(self, p: float, c: float, p_line: float, l: float) -> float:
-        v1 = -np.exp(l*c)*p
+        v1 = -np.exp(l*c) * p
         v2 = (np.exp(l*c)*p_line - p_line - np.exp(l*c)*p)
         return np.log(v1/v2) * 1/l
 
