@@ -23,7 +23,7 @@ class CurvePlots:
             'CVAR (sup)': 'olive'
         }
         
-    def plot_curve(self, dict_curves: dict, filter_prob: float=-1, less_equal=True, param_axis=None, nm_fator_risco='f(.)', show_legend=True) -> None:
+    def plot_curve(self, dict_curves: dict, filter_prob: float=-1, less_equal=True, param_axis=None, nm_fator_risco='f(.)', show_legend=True, str_title='') -> None:
         """Plot curve
 
         Args:
@@ -56,10 +56,20 @@ class CurvePlots:
         if show_legend:
             if param_axis is None:
                 fig.legend(loc='upper left')
-                return fig, ax
             else:
                 param_axis.legend(loc='upper left')
                 return param_axis
+        
+        if param_axis is None:
+            fig.xlabel('probability (p\')')
+            fig.ylabel('cost (c\')')
+            fig.title(str_title)
+            return fig, ax
+        else:
+            param_axis.set_xlabel('probability (p\')')
+            param_axis.set_ylabel('cost (c\')')
+            param_axis.set_title(str_title)
+            return param_axis
                 
     def plot_curve_subplots(self, dict_curves: dict, filter_prob: float=-1) -> None:
         """Subplots of curves: (i) full x axis; (ii) less than `filter_prob`; (iii) greater than `filter_prob`
@@ -117,9 +127,9 @@ class CurvePlots:
         """
         fig, [ax1, ax2, ax3] = plt.subplots(1, 3, figsize=(18, 6))
         
-        self.plot_curve(dict_curves, -1, True, ax1, show_legend=False)
-        self.plot_curve(dict_curves, filter_prob, True, ax2, show_legend=False)
-        self.plot_curve(dict_curves, filter_prob, False, ax3, show_legend=False)
+        self.plot_curve(dict_curves, -1, True, ax1, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a 2A1S Problem')
+        self.plot_curve(dict_curves, filter_prob, True, ax2, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a 2A1S Problem with p\' < 0.5')
+        self.plot_curve(dict_curves, filter_prob, False, ax3, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a 2A1S Problem with p\' > 0.5')
         
         handles, labels = ax1.get_legend_handles_labels()
         fig.legend(handles, labels)
@@ -163,7 +173,7 @@ class CurvePlots:
         for p in list_p:
             if self._lib == 'matplotlib':
                 axs[c1, c2].axvline(x=p, color='green', linestyle='--')
-                axs[c1, c2].set_title(f'Região ótima - Probabilidade [{np.round(p, 1)}]')
+                axs[c1, c2].set_title(f'Comparable Regions for Multiple Probabilities: p = {np.round(p, 1)}')
             # elif self._lib == 'plotly':
                 
             c1, c2 = self._define_counting(c1, c2, 3)

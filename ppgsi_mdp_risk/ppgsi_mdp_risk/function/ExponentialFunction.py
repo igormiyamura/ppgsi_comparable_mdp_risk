@@ -5,8 +5,8 @@ class ExponentialFunction:
     def __init__(self) -> None:
         pass
     
-    def get_value_function(self, p: float, c: float) -> float:
-        return 0
+    def get_value_function(self, vl_lambda: float, p: float, c: float) -> float:
+        return np.sign(vl_lambda) * np.exp(vl_lambda * c) * p / (1 - np.exp(vl_lambda * c) * (1 - p))
             
     def get_equivalent_cost(self, p: float, c: float, p_line: float, lim: str='inf') -> float:
         if lim == 'sup':
