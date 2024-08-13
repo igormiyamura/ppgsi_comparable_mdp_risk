@@ -53,7 +53,10 @@ class VAR:
         return t
     
     def _get_log_nth_term(self, p: float, alpha: float):
+        #return np.emath.logn((1-p), (1-alpha)/p)
         return np.emath.logn((1-p), alpha * p - p + 1)
-        #return np.emath.logn((1-p), alpha) 
+        # return np.emath.logn((1-p), alpha) 
+        
+        # return np.log(alpha) / np.log(1-p)
     
     

@@ -62,12 +62,12 @@ class CurvePlots:
         
         if param_axis is None:
             fig.xlabel('probability (p\')')
-            fig.ylabel('cost (c\')')
+            fig.ylabel('cost (EC)')
             fig.title(str_title)
             return fig, ax
         else:
             param_axis.set_xlabel('probability (p\')')
-            param_axis.set_ylabel('cost (c\')')
+            param_axis.set_ylabel('cost (EC)')
             param_axis.set_title(str_title)
             return param_axis
                 
@@ -102,8 +102,8 @@ class CurvePlots:
         
         for i, method in enumerate(methods):
             dict_curves = {}
-            dict_curves[f'{method}-min'] = _analytical_result[f'{method}-min']
-            dict_curves[f'{method}-max'] = _analytical_result[f'{method}-max']
+            dict_curves[f'{method}-LB'] = _analytical_result[f'{method}-min']
+            dict_curves[f'{method}-UB'] = _analytical_result[f'{method}-max']
             
             self.plot_curve(dict_curves, -1, True, ax[i, 0], show_legend=False)
             self.plot_curve(dict_curves, filter_prob, True, ax[i, 1], show_legend=False)
@@ -116,6 +116,7 @@ class CurvePlots:
             ax[i, 1].title.set_text(f'{method} Curve (p\' < {filter_prob})')
             ax[i, 2].title.set_text(f'{method} Curve (p\' > {filter_prob})')
         
+        fig.tight_layout()
         plt.show()
         
     def plot_all_curves_subplots(self, dict_curves: dict, filter_prob: float=-1) -> None:
@@ -127,9 +128,9 @@ class CurvePlots:
         """
         fig, [ax1, ax2, ax3] = plt.subplots(1, 3, figsize=(18, 6))
         
-        self.plot_curve(dict_curves, -1, True, ax1, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a 2A1S Problem')
-        self.plot_curve(dict_curves, filter_prob, True, ax2, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a 2A1S Problem with p\' < 0.5')
-        self.plot_curve(dict_curves, filter_prob, False, ax3, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a 2A1S Problem with p\' > 0.5')
+        self.plot_curve(dict_curves, -1, True, ax1, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a OSMA Problem')
+        self.plot_curve(dict_curves, filter_prob, True, ax2, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a OSMA Problem with p\' < 0.5')
+        self.plot_curve(dict_curves, filter_prob, False, ax3, show_legend=False, str_title='Comparative Cost Curves: Analytical Curves for \n Each Method in a OSMA Problem with p\' > 0.5')
         
         handles, labels = ax1.get_legend_handles_labels()
         fig.legend(handles, labels)
