@@ -7,7 +7,10 @@ class RiskNeutral(ValueFunctionCalculator):
     def __init__(self, _verbose=False) -> None:
         self._verbose = _verbose
     
-    def value_function(self, c, p, n, num_simulations=100000):
+    def osma_analytical_value_function(self, *args, **kwargs):
+        pass
+
+    def mss_value_function(self, c, p, n, num_simulations=100000):
         costs = []
         for _ in range(num_simulations):
             ActualState = {}
@@ -35,10 +38,13 @@ class RiskNeutral(ValueFunctionCalculator):
                     break
                 
             costs.append(_cost)
-        return np.mean(costs), costs
+        return np.mean(costs), costs  
     
-    def analytical_value_function(self, c, p, n):
+    def mss_analytical_value_function(self, c, p, n):
         return c * sum([p**i for i in range(0, n)]) / p**(n)
     
-    def value_function_range_probability(self):
+    def osma_value_function_range_probability(self, *args, **kwargs):
+        pass
+    
+    def mss_value_function_range_probability(self, *args, **kwargs):
         pass

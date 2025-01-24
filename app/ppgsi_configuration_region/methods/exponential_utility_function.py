@@ -5,8 +5,9 @@ from typing import List
 
 from ..residuals.error_metrics import ErrorMetrics
 from ..mss.multiple_sequential_states import MultipleSequentialStates
+from .value_function_calculator import ValueFunctionCalculator
 
-class ExponentialUtilityFunction:
+class ExponentialUtilityFunction(ValueFunctionCalculator):
     def __init__(self) -> None:
         pass
     
@@ -98,7 +99,7 @@ class ExponentialUtilityFunction:
             for prob in p:
                 prob = round(prob, 2)
                 res[num_states][prob] = self.mss_value_function(num_states, prob, c, vl_lambda, _threshold, _epsilon, _alpha, _quiet)[0]
-                res[num_states][prob] = 0 if res[num_states][prob] > 1e3 else res[num_states][prob]
+                res[num_states][prob] = np.nan if res[num_states][prob] > 1e3 else res[num_states][prob]
                 
         return res
         
