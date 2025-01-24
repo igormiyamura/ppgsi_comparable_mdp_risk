@@ -1,16 +1,17 @@
 
 import numpy as np
 from numpy import linalg as LA
+from typing import List
 
 from ..residuals.error_metrics import ErrorMetrics
 from ..mss.multiple_sequential_states import MultipleSequentialStates
 
 class ExponentialUtilityFunction:
-    def __init__(self, epsilon) -> None:
-        self.epsilon = epsilon
-        self.EM = ErrorMetrics(self.epsilon)
+    def __init__(self) -> None:
+        pass
     
-    def exponential_utility_method(self, n: int, p: float, c: float, vl_lambda: float, _threshold: int, _epsilon: float, _alpha: float=1, _quiet: bool=True):
+    def mss_value_function(self, n: int, p: float, c: float, vl_lambda: float, _threshold: int, _epsilon: float, _alpha: float=1, _quiet: bool=True):
+        self.EM = ErrorMetrics(_epsilon)
         iterator = 0
 
         # Define Multiple Sequential States
@@ -55,8 +56,52 @@ class ExponentialUtilityFunction:
             V = new_V.copy()
         return V
         
-    def exponential_utility_method_analitico(self, n: int, p: float, c: float, vl_lambda: float):
+    def osma_analytical_value_function(self, p: float, c: float, vl_lambda: float):
+        return (np.sign(vl_lambda) * np.exp(vl_lambda * c) * p) / (1 - np.exp(vl_lambda * c) * (1 - p)) 
+        
+    def mss_analytical_value_function(self, n: int, p: float, c: float, vl_lambda: float):
         return np.exp(n * vl_lambda * c) * p**(n) * np.sign(vl_lambda) / (1 + sum([-np.exp(i * vl_lambda * c) * p**(i - 1) * (1-p) for i in range(1, n+1)]))
+
+    def osma_value_function_range_probability(self, p: List[float], c: float, vl_lambda: float):
+        print(f"""
+              Calculando valores para os seguintes parâmetros:
+                p: {p} | 
+                c: {c} | 
+                lambda: {vl_lambda} |
+              """)
+        
+        res = {}
+        res[1] = {}
+        
+        for prob in p:
+            prob = round(prob, 2)
+            res[1][prob] = self.osma_analytical_value_function(prob, c, vl_lambda)
+                
+        return res
+
+    def mss_value_function_range_probability(self, n: List[int], p: List[float], c: float, vl_lambda: float, _threshold: int, _epsilon: float, _alpha: float=1, _quiet: bool=True):
+        print(f"""
+              Calculando valores para os seguintes parâmetros:
+                n: {[v for v in n]} | 
+                p: {[round(v, 2) for v in p]} | 
+                c: {c} | 
+                lambda: {vl_lambda} |
+                threshold: {_threshold} | 
+                epsilon: {_epsilon} | 
+                alpha: {_alpha} |
+              """)
+        
+        res = {}
+        
+        for num_states in n:
+            res[num_states] = {}
+            for prob in p:
+                prob = round(prob, 2)
+                res[num_states][prob] = self.mss_value_function(num_states, prob, c, vl_lambda, _threshold, _epsilon, _alpha, _quiet)[0]
+                res[num_states][prob] = 0 if res[num_states][prob] > 1e3 else res[num_states][prob]
+                
+        return res
+        
 
 class LambdaExtreme:
     def __init__(self) -> None:
@@ -84,7 +129,7 @@ class LambdaExtreme:
     def spectral_radius(self, X, Y):
         return max(abs(LA.eig(X * Y)[0]))
 
-    def find_lambda_extreme(self, n, p, c, vl_lambda, epsilon, beta):
+    def find_lambda_extreme(self, n, p, c, vl_lambda, epsilon, beta, _quiet=True):
         MSS = MultipleSequentialStates(num_states=n, probability=p, cost=c)
         
         mss_value_function = MSS._build_V0()
@@ -94,7 +139,7 @@ class LambdaExtreme:
         D = self.create_vector_D(S, c) ** vl_lambda
         T = self.create_vector_T(S, mss_transitions)
 
-        print(f'Initial Spectral Radius: {self.spectral_radius(D, T)}')
+        if not _quiet: print(f'Initial Spectral Radius: {self.spectral_radius(D, T)}')
 
         pi0 = MSS._build_PI0(initial_value=0)
         pi = MSS._build_PI0(initial_value=-1)
@@ -102,20 +147,32 @@ class LambdaExtreme:
 
         while pi != pi0:
             while self.spectral_radius(D, T) <= (1 - beta):
-                # Print While
+                # While
                 # -----------
-                print(f'While: {self.spectral_radius(D, T)} >= {(1 - beta)}')
+                if not _quiet: print(f'While: {self.spectral_radius(D, T)} >= {(1 - beta)}')
                 
                 # Step
                 # ----
                 step = (np.log(1 - epsilon) - np.log(self.spectral_radius(D, T))) / c
                 vl_lambda = vl_lambda + step
-                print(f'Lambda Extreme: {vl_lambda} > Step: {step}')
+                if not _quiet: print(f'Lambda Extreme: {vl_lambda} > Step: {step}')
                 
                 D = self.create_vector_D(S, c) ** vl_lambda
 
-                print(f'Iteration: {i}')
+                if not _quiet: print(f'Iteration: {i}')
                 pi = MSS._build_PI0(initial_value=0)
                 i += 1
                 
         return vl_lambda
+    
+    def find_lambda_extreme_range_probability(self, n, p, c, vl_lambda, epsilon, beta):
+        res = {}
+        
+        for num_states in n:
+            res[num_states] = {}
+            for prob in p:
+                prob = round(prob, 2)
+                res[num_states][prob] = self.find_lambda_extreme(num_states, prob, c, vl_lambda, epsilon, beta)
+                
+        return res
+                

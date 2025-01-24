@@ -1,7 +1,9 @@
 
 import numpy as np
 
-class RiskNeutral:
+from .value_function_calculator import ValueFunctionCalculator
+
+class RiskNeutral(ValueFunctionCalculator):
     def __init__(self, _verbose=False) -> None:
         self._verbose = _verbose
     
@@ -37,3 +39,6 @@ class RiskNeutral:
     
     def analytical_value_function(self, c, p, n):
         return c * sum([p**i for i in range(0, n)]) / p**(n)
+    
+    def value_function_range_probability(self):
+        pass
