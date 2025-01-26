@@ -98,8 +98,10 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
             res[num_states] = {}
             for prob in p:
                 prob = round(prob, 2)
-                res[num_states][prob] = self.mss_value_function(num_states, prob, c, vl_lambda, _threshold, _epsilon, _alpha, _quiet)[0]
-                res[num_states][prob] = np.nan if res[num_states][prob] > 1e3 else res[num_states][prob]
+                res[num_states][prob] = self.mss_value_function(num_states, prob, c, vl_lambda, _threshold, _epsilon, _alpha, _quiet)
+                
+                for state in res[num_states][prob].keys():
+                    res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
                 
         return res
         

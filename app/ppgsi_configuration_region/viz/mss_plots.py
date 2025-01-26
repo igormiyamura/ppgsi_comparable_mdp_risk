@@ -7,7 +7,7 @@ class MSSPlots:
     def __init__(self):
         pass
 
-    def subplots_for_number_of_states(self, data, sharey=True):
+    def subplots_for_number_of_states(self, data, sharey=True, plot_only_first_state: bool = True):
         # Use a color palette
         colors = sns.color_palette("tab10", len(data))
 
@@ -28,12 +28,29 @@ class MSSPlots:
         else:
             axes = [axes]  # Ensure axes is a list even for a single subplot
 
+        dict_values = {}
+            
+        for n in data.keys():
+            if n not in dict_values:
+                dict_values[n] = {}
+            for prob in data[n].keys():
+                for state, value in data[n][prob].items():
+                    if (plot_only_first_state) and state != 0: continue
+                    if state == 'sG': continue
+                    
+                    if state not in dict_values[n]:
+                        dict_values[n][state] = []
+                        
+                    dict_values[n][state].append(value)
+
         for ax, (key, sub_dict), color in zip(axes, data.items(), colors):
             probabilities = list(sub_dict.keys())
-            values = list(sub_dict.values())
-            
+            dict_values_for_n_states = dict_values[key]
+                
             # Plot the line graph
-            ax.plot(probabilities, values, marker='o', linewidth=2, markersize=6, label=f'n = {key}', color=color)
+            for state_value, values in dict_values_for_n_states.items():
+                ax.plot(probabilities, values, marker='o', linewidth=2, markersize=6, label=f'n = {key}, s = {state_value}', color=color)
+                
             ax.set_title(f'Number of States => {key}', fontsize=10, fontweight='bold')
             ax.set_xlabel('Probability (p)', fontsize=10)
             ax.grid(visible=True, linestyle='--', alpha=0.7)
