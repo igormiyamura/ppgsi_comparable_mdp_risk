@@ -72,7 +72,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                             print(f'[{iteration}] State: {state}, Action: {action}, Next State: {next_state}')
 
                         # Determine the cost and transition probability
-                        cost = 1 if state != 'sG' else 0
+                        cost = c if state != 'sG' else 0
                         transition_probability = transitions[state][action][next_state]
 
                         # Compute the adjustment term for the value function
@@ -110,9 +110,39 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
 
         return current_values, iteration
 
-    def mss_analytical_value_function(self, *args, **kwargs):
-        pass
-    
+    def mss_analytical_value_function(self, n: int, p: float, c: float, k: float):
+        if n == 1:
+            return {0, self.osma_analytical_value_function(p, c, k)}
+        elif n == 2:
+            def compute_V0(c, p, k, v1):
+                # Numerator components
+                numerator = c * (k - 2 * p * k + 1)
+                denominator = p * (1 - k)
+                
+                # Compute V0
+                V0 = (numerator / denominator) + v1
+                return V0
+            
+            def compute_V1(c, p, k):
+                # Numerator components
+                term1 = p**2 * (1 - k)**2
+                term2 = (1 - p) * (1 + k) * (1 + k + p - 3 * p * k)
+                
+                # Final numerator
+                numerator = c * (term1 + term2)
+                
+                # Denominator
+                denominator = p**2 * (1 - k)**2
+                
+                # Compute V1
+                V1 = numerator / denominator
+                return V1
+
+            v1 = compute_V1(c, p, k)
+            v0 = compute_V0(c, p, k, v1)
+            
+            return {0: v0, 1: v1}
+            
     def osma_value_function_range_probability(self, p: List[float], c: float, k: float, _verbose: bool = False):
         print(f"""
               Calculando valores para os seguintes parâmetros:
