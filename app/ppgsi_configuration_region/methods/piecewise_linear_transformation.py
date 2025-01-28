@@ -11,7 +11,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         pass
 
     def osma_analytical_value_function(self, p: float, c: float, k: float):
-        return (c * (k - 2 * k * p + 1)) / (p * (1 - k))
+        return {0: (c * (k - 2 * k * p + 1)) / (p * (1 - k))}
 
     def mss_value_function(self, n: int, p: float, c: float, k: float, alpha: float, _threshold: int, _epsilon: float, _verbose: bool = False):
         """
@@ -142,6 +142,36 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             v0 = compute_V0(c, p, k, v1)
             
             return {0: v0, 1: v1}
+        elif n == 3: # WIP - AINDA COM ERRO
+            def calculate_V0(c, p, k):
+                # Calculate V0 using the derived formula
+                V0 = (c * (k - 2 * p * k + 1)) / (p * (1 - k)) + calculate_V1(c, p, k)
+                return V0
+
+            def calculate_V1(c, p, k):
+                # Calculate V1 using the derived formula
+                term1 = c
+                term2 = ((1 - p) * (1 + k) * c) / (p * (1 - k))
+                term3 = ((1 - p) * (1 + k) * (k - 2 * p * k + 1)) / (p * (1 - k) ** 2)
+                V1 = term1 + term2 + term3
+                return V1
+
+            def calculate_V2(c, p, k):
+                # Calculate V2 using the derived formula
+                term1 = c
+                term2 = ((1 - p) * (1 + k)) / (p * (1 - k))
+                term3 = 2 * c + (c * (k - 2 * p * k + 1)) / (p * (1 - k)) + ((1 - p) * (1 + k) * c) / (p * (1 - k)) + ((1 - p) * (1 + k) * (k - 2 * p * k + 1)) / (p * (1 - k) ** 2)
+                V2 = term1 + term2 * term3
+                return V2
+            
+            v2 = calculate_V2(c, p, k)
+            v1 = calculate_V1(c, p, k)
+            v0 = calculate_V0(c, p, k)
+            
+            return {0: v0, 1: v1, 2: v2}
+        else:
+            raise ValueError("The analytical value function is not available for n > 3 states.")
+
             
     def osma_value_function_range_probability(self, p: List[float], c: float, k: float, _verbose: bool = False):
         print(f"""
@@ -157,7 +187,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         for prob in p:
             prob = round(prob, 2)
             res[1][prob] = self.osma_analytical_value_function(prob, c, k)
-            res[1][prob] = np.nan if res[1][prob] > 1e3 else res[1][prob]
+            res[1][prob] = np.nan if res[1][prob][0] > 1e3 else res[1][prob]
                 
         return res
     
@@ -181,8 +211,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                 prob = round(prob, 2)
                 res[num_states][prob], i = self.mss_value_function(num_states, prob, c, k, alpha, _threshold, _epsilon, _verbose)
                 if _validate_larger_values: 
-                    res[num_states][prob] = np.nan if res[num_states][prob][0] > 1e3 else res[num_states][prob][0]
-                else:
-                    res[num_states][prob] = res[num_states][prob][0]
+                    for state in res[num_states][prob].keys():
+                        res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
                 
         return res

@@ -58,7 +58,7 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
         return V
         
     def osma_analytical_value_function(self, p: float, c: float, vl_lambda: float):
-        return (np.sign(vl_lambda) * np.exp(vl_lambda * c) * p) / (1 - np.exp(vl_lambda * c) * (1 - p)) 
+        return {0: (np.sign(vl_lambda) * np.exp(vl_lambda * c) * p) / (1 - np.exp(vl_lambda * c) * (1 - p))}
         
     def mss_analytical_value_function(self, n: int, p: float, c: float, vl_lambda: float):
         return np.exp(n * vl_lambda * c) * p**(n) * np.sign(vl_lambda) / (1 + sum([-np.exp(i * vl_lambda * c) * p**(i - 1) * (1-p) for i in range(1, n+1)]))
@@ -166,7 +166,7 @@ class LambdaExtreme:
                 pi = MSS._build_PI0(initial_value=0)
                 i += 1
                 
-        return vl_lambda
+        return {0: vl_lambda}
     
     def find_lambda_extreme_range_probability(self, n, p, c, vl_lambda, epsilon, beta):
         res = {}
