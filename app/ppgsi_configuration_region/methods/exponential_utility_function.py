@@ -61,7 +61,7 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
         return {0: (np.sign(vl_lambda) * np.exp(vl_lambda * c) * p) / (1 - np.exp(vl_lambda * c) * (1 - p))}
         
     def mss_analytical_value_function(self, n: int, p: float, c: float, vl_lambda: float):
-        return np.exp(n * vl_lambda * c) * p**(n) * np.sign(vl_lambda) / (1 + sum([-np.exp(i * vl_lambda * c) * p**(i - 1) * (1-p) for i in range(1, n+1)]))
+        return {0: np.exp(n * vl_lambda * c) * p**(n) * np.sign(vl_lambda) / (1 + sum([-np.exp(i * vl_lambda * c) * p**(i - 1) * (1-p) for i in range(1, n+1)]))}
 
     def osma_value_function_range_probability(self, p: List[float], c: float, vl_lambda: float):
         print(f"""
@@ -81,17 +81,6 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
         return res
 
     def mss_value_function_range_probability(self, n: List[int], p: List[float], c: float, vl_lambda: float, _threshold: int, _epsilon: float, _alpha: float=1, _quiet: bool=True):
-        print(f"""
-              Calculando valores para os seguintes parâmetros:
-                n: {[v for v in n]} | 
-                p: {[round(v, 2) for v in p]} | 
-                c: {c} | 
-                lambda: {vl_lambda} |
-                threshold: {_threshold} | 
-                epsilon: {_epsilon} | 
-                alpha: {_alpha} |
-              """)
-        
         res = {}
         
         for num_states in n:
@@ -102,6 +91,20 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
                 
                 for state in res[num_states][prob].keys():
                     res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
+                
+        return res
+    
+    def mss_analytical_value_function_range_probability(self, n: List[int], p: List[float], c: float, vl_lambda: float):
+        res = {}
+        
+        for num_states in n:
+            res[num_states] = {}
+            for prob in p:
+                prob = round(prob, 2)
+                res[num_states][prob] = self.mss_analytical_value_function(num_states, prob, c, vl_lambda)
+                
+                for state in res[num_states][prob].keys():
+                    res[num_states][prob][state] = np.nan if (res[num_states][prob][state] > 1e3) or (res[num_states][prob][state] < 0) else res[num_states][prob][state]
                 
         return res
         

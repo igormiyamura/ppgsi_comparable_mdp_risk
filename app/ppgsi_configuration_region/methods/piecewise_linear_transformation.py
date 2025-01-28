@@ -112,7 +112,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
 
     def mss_analytical_value_function(self, n: int, p: float, c: float, k: float):
         if n == 1:
-            return {0, self.osma_analytical_value_function(p, c, k)}
+            return self.osma_analytical_value_function(p, c, k)
         elif n == 2:
             def compute_V0(c, p, k, v1):
                 # Numerator components
@@ -170,9 +170,11 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             
             return {0: v0, 1: v1, 2: v2}
         else:
-            raise ValueError("The analytical value function is not available for n > 3 states.")
+            res = {}
+            for _n in range(n):
+                res[_n] = np.nan
+            return res
 
-            
     def osma_value_function_range_probability(self, p: List[float], c: float, k: float, _verbose: bool = False):
         print(f"""
               Calculando valores para os seguintes parâmetros:
@@ -210,6 +212,20 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             for prob in p:
                 prob = round(prob, 2)
                 res[num_states][prob], i = self.mss_value_function(num_states, prob, c, k, alpha, _threshold, _epsilon, _verbose)
+                if _validate_larger_values: 
+                    for state in res[num_states][prob].keys():
+                        res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
+                
+        return res
+    
+    def mss_analytical_value_function_range_probability(self, n: List[int], p: List[float], c: float, k: float, _validate_larger_values: bool = False):
+        res = {}
+        
+        for num_states in n:
+            res[num_states] = {}
+            for prob in p:
+                prob = round(prob, 2)
+                res[num_states][prob] = self.mss_analytical_value_function(num_states, prob, c, k)
                 if _validate_larger_values: 
                     for state in res[num_states][prob].keys():
                         res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
