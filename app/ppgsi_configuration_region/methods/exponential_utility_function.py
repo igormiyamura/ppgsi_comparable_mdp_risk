@@ -61,7 +61,14 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
         return {0: (np.sign(vl_lambda) * np.exp(vl_lambda * c) * p) / (1 - np.exp(vl_lambda * c) * (1 - p))}
         
     def mss_analytical_value_function(self, n: int, p: float, c: float, vl_lambda: float):
-        return {0: np.exp(n * vl_lambda * c) * p**(n) * np.sign(vl_lambda) / (1 + sum([-np.exp(i * vl_lambda * c) * p**(i - 1) * (1-p) for i in range(1, n+1)]))}
+        exp_lambda_c = np.exp(vl_lambda * c) * p
+        
+        term1 = ((exp_lambda_c)**n) * np.sign(vl_lambda)
+        term2 = 1 - (1 - p) * np.exp(vl_lambda * c) * (1 - exp_lambda_c**n) / (1 - exp_lambda_c)
+        
+        result = term1 / term2 
+        # return {0: np.exp(n * vl_lambda * c) * p**(n) * np.sign(vl_lambda) / (1 + sum([-np.exp(i * vl_lambda * c) * p**(i - 1) * (1-p) for i in range(1, n+1)]))}
+        return {0: result}
 
     def osma_value_function_range_probability(self, p: List[float], c: float, vl_lambda: float):
         print(f"""
