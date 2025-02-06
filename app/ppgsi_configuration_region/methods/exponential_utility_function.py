@@ -3,6 +3,8 @@ import numpy as np
 from numpy import linalg as LA
 from typing import List
 
+from scipy.optimize import fsolve
+
 from ..residuals.error_metrics import ErrorMetrics
 from ..mss.multiple_sequential_states import MultipleSequentialStates
 from .value_function_calculator import ValueFunctionCalculator
@@ -36,7 +38,7 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
                     t = np.array(list(T[S][a].values()))
                     
                     TV = t * v
-                    C = 1 if S != 'sG' else 0
+                    C = c if S != 'sG' else 0
                     
                     bellman = np.exp(C * vl_lambda) * _alpha * sum(TV)
                     bellman_results.append(bellman)
@@ -115,6 +117,73 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
                 
         return res
         
+    def diff_dict_values(self, dict1, dict2):
+        # Ensure both dictionaries have the same keys
+        assert dict1.keys() == dict2.keys(), "Dictionaries must have the same keys"
+        
+        # Sum the values for the same key in both dictionaries
+        summed_values = {key: dict1[key] - dict2[key] for key in dict1}
+        
+        # Sum all the resulting values
+        total_sum = sum(summed_values.values())
+        
+        return total_sum
+
+    def mss_equivalent_cost_solver(self, n: float, p: float, cr: float, pr: float, vl_lambda: float, _threshold: float, _epsilon: float, _alpha: float = 1, guess_EC: float = 0):
+        def equation(EC, n, p, cr, pr, vl_lambda, _threshold, _epsilon, _alpha):
+            reference_values = self.mss_value_function(n, pr, cr, vl_lambda, _threshold, _epsilon, _alpha)
+            values = self.mss_value_function(n, p, EC[0], vl_lambda, _threshold, _epsilon, _alpha)
+            
+            return self.diff_dict_values(reference_values, values)
+        
+        solution = fsolve(equation, guess_EC, args=(n, p, cr, pr, vl_lambda, _threshold, _epsilon, _alpha))
+        
+        # print(f"cr: {cr} | pr: {pr} | lambda: {vl_lambda} | n: {n} | p: {p} | EC: {solution}")
+        return {0: solution[0]}
+
+    def mss_analytical_equivalent_cost_solver(self, n: float, p: float, cr: float, pr: float, vl_lambda: float, guess_EC: float = 0):
+        def equation(EC, n, p, cr, pr, vl_lambda):
+            reference_values = self.mss_analytical_value_function(n, pr, cr, vl_lambda)
+            values = self.mss_analytical_value_function(n, p, EC[0], vl_lambda)
+            
+            return self.diff_dict_values(reference_values, values)
+        
+        solution = fsolve(equation, guess_EC, args=(n, p, cr, pr, vl_lambda))
+        
+        # print(f"cr: {cr} | pr: {pr} | lambda: {vl_lambda} | n: {n} | p: {p} | EC: {solution}")
+        return {0: solution[0]}
+           
+    def run_configuration_region(self, n: List[int], p: List[float], cr: float, pr: float, analytical: bool=False, _threshold: int=1e3, _epsilon: float=1e-3, _alpha: float=1, guess_EC: float = 0, _quiet: bool=True):
+        """
+        Run the configuration region for the Exponential Utility Function.
+            This method will run in two parts: (i) run the MSS value function for extreme positive value of lambda, and (ii) run the MSS value function for extreme negative value of lambda.
+        """
+        res = {}
+        
+        for num_states in n:
+            res[num_states] = {}
+            for prob in p:
+                prob = round(prob, 2)
+                res[num_states][prob] = {}
+                
+                vl_lambda_extreme_reference = LambdaExtreme().solver_lambda_extreme_mss(num_states, pr, cr)[0]
+                vl_lambda_extreme = LambdaExtreme().solver_lambda_extreme_mss(num_states, prob, cr)[0]
+                vl_lambda_extreme = min([vl_lambda_extreme, vl_lambda_extreme_reference])
+                
+                if analytical:
+                    # Run the MSS value function for extreme positive value of lambda
+                    res[num_states][prob]['positive'] = self.mss_analytical_equivalent_cost_solver(num_states, prob, cr, pr, vl_lambda_extreme - 0.01, guess_EC=1 if prob >= 0.5 else 0)
+                    
+                    # Run the MSS value function for extreme negative value of lambda
+                    res[num_states][prob]['negative'] = self.mss_analytical_equivalent_cost_solver(num_states, prob, cr, pr, -1e5, guess_EC=1)
+                else:
+                    # Run the MSS value function for extreme positive value of lambda
+                    res[num_states][prob]['positive'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, vl_lambda_extreme - 0.01, _threshold, _epsilon, _alpha, _quiet)
+                    
+                    # Run the MSS value function for extreme negative value of lambda
+                    res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, -1e5, _threshold, _epsilon, _alpha, _quiet)
+                
+        return res
 
 class LambdaExtreme:
     def __init__(self) -> None:
@@ -188,4 +257,37 @@ class LambdaExtreme:
                 res[num_states][prob] = self.find_lambda_extreme(num_states, prob, c, vl_lambda, epsilon, beta)
                 
         return res
+    
+    def solver_lambda_extreme_mss(self, n, p, c, lambda_guess=0.1):
+        """
+        Solves for lambda using numerical methods.
+
+        Parameters:
+        - p: Probability parameter (0 < p < 1)
+        - c: Constant multiplier
+        - n: Integer exponent
+        - lambda_guess: Initial guess for lambda
+
+        Returns:
+        - Approximate solution for lambda.
+        """
+        def equation(lambda_val, p, c, n):
+            """
+            Defines the equation to solve for lambda.
+            """
+            term = 1 - (1 - p) * np.exp(lambda_val * c) * (1 - (np.exp(lambda_val * c) * p)**n) / (1 - (np.exp(lambda_val * c) * p))
+            return term
+        
+        solution = fsolve(equation, lambda_guess, args=(p, c, n))
+        return {0: solution[0]}
+    
+    def find_numerical_lambda_extreme_range_probability(self, n, p, c):
+        res = {}
+        
+        for num_states in n:
+            res[num_states] = {}
+            for prob in p:
+                prob = round(prob, 2)
+                res[num_states][prob] = self.solver_lambda_extreme_mss(num_states, prob, c)
                 
+        return res

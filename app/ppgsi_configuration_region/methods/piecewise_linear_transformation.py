@@ -13,7 +13,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
     def osma_analytical_value_function(self, p: float, c: float, k: float):
         return {0: (c * (k - 2 * k * p + 1)) / (p * (1 - k))}
 
-    def mss_value_function(self, n: int, p: float, c: float, k: float, alpha: float, _threshold: int, _epsilon: float, _verbose: bool = False):
+    def mss_value_function(self, n: int, p: float, c: float, k: float, alpha: float, gamma: float, _threshold: int, _epsilon: float, _verbose: bool = False):
         """
         Computes the value function for Multiple Sequential States (MSS) with specified parameters.
 
@@ -77,7 +77,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
 
                         # Compute the adjustment term for the value function
                         adjustment = (
-                            piecewise_function(cost + updated_values[next_state] - updated_values[state], k)
+                            piecewise_function(cost + gamma * updated_values[next_state] - updated_values[state], k)
                             if state != 'sG' else 0
                         )
 
@@ -145,15 +145,15 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         elif n == 3: # WIP - AINDA COM ERRO
             def calculate_V0(c, p, k):
                 # Calculate V0 using the derived formula
-                V0 = (c * (k - 2 * p * k + 1)) / (p * (1 - k)) + calculate_V1(c, p, k)
+                term1 = (1 - p) * (1 + k) * c
+                term2 = (1 - k) * p
+                
+                V0 = term1 / term2 + c + calculate_V1(c, p, k)
                 return V0
 
             def calculate_V1(c, p, k):
                 # Calculate V1 using the derived formula
-                term1 = c
-                term2 = ((1 - p) * (1 + k) * c) / (p * (1 - k))
-                term3 = ((1 - p) * (1 + k) * (k - 2 * p * k + 1)) / (p * (1 - k) ** 2)
-                V1 = term1 + term2 + term3
+                term1 = (1 - p) * (1 + k) * (c + calculate_V0(c, p, k))
                 return V1
 
             def calculate_V2(c, p, k):
@@ -193,7 +193,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                 
         return res
     
-    def mss_value_function_range_probability(self, n: List[int], p: List[float], c: float, k: float, alpha: float, _threshold: int, _epsilon: float, _verbose: bool = False, _validate_larger_values: bool = False):
+    def mss_value_function_range_probability(self, n: List[int], p: List[float], c: float, k: float, alpha: float, gamma: float, _threshold: int, _epsilon: float, _verbose: bool = False, _validate_larger_values: bool = False):
         print(f"""
               Calculando valores para os seguintes parâmetros:
                 n: {[v for v in n]} | 
@@ -211,7 +211,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             res[num_states] = {}
             for prob in p:
                 prob = round(prob, 2)
-                res[num_states][prob], i = self.mss_value_function(num_states, prob, c, k, alpha, _threshold, _epsilon, _verbose)
+                res[num_states][prob], i = self.mss_value_function(num_states, prob, c, k, alpha, gamma, _threshold, _epsilon, _verbose)
                 if _validate_larger_values: 
                     for state in res[num_states][prob].keys():
                         res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
