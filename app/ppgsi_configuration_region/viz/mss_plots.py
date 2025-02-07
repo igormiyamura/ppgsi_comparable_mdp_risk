@@ -111,7 +111,8 @@ class MSSPlots:
                         dict_values_analytical[n][state] = []
 
                     dict_values[n][state].append(value)
-                    dict_values_analytical[n][state].append(data_analytical[n][prob][state])
+                    
+                    dict_values_analytical[n][state].append(0 if n not in data_analytical.keys() else data_analytical[n][prob][state])
 
         for ax, (key, sub_dict), color in zip(axes, data.items(), colors):
             probabilities = list(sub_dict.keys())
@@ -214,6 +215,98 @@ class MSSPlots:
 
         # Remove unused subplots if any
         for i in range(len(data), len(axes)):
+            fig.delaxes(axes[i])
+
+        # Centralized y-axis label
+        fig.text(0.04, 0.5, 'Value', va='center', rotation='vertical', fontsize=12, fontweight='bold')
+
+        # Adjust layout for better spacing
+        plt.tight_layout()
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.9)  # Adjust spacing
+        plt.show()
+        
+    def plot_compare_configuration_region(self, data1, data2, method1='Method 1', method2='Method 2', sharey=True, plot_only_first_state: bool = True):
+        def dict_to_dictvalues(data):
+            dict_values_positive = {}
+            dict_values_negative = {}
+            
+            for n in data.keys():
+                if n not in dict_values_positive:
+                    dict_values_positive[n] = {}
+                if n not in dict_values_negative:
+                    dict_values_negative[n] = {}
+                for prob in data[n].keys():
+                    for param_lambda in data[n][prob].keys():
+                        for state, value in data[n][prob][param_lambda].items():
+                            if (plot_only_first_state) and state != 0: continue
+                            if state == 'sG': continue
+                            
+                            if param_lambda == 'positive':
+                                if state not in dict_values_positive[n]:
+                                    dict_values_positive[n][state] = []
+                                    
+                                dict_values_positive[n][state].append(value)
+                            elif param_lambda == 'negative':
+                                if state not in dict_values_negative[n]:
+                                    dict_values_negative[n][state] = []
+                                
+                                dict_values_negative[n][state].append(value)
+            return dict_values_positive, dict_values_negative
+        
+        # Use a color palette
+        colors = sns.color_palette("tab10", len(data1))
+
+        # Initialize figure and subplots
+        n = len(data1)
+        if n > 4:
+            # Calculate rows and columns dynamically
+            cols = min(n, 4)  # Maximum of 4 columns
+            rows = math.ceil(n / cols)  # Rows depend on the number of graphs
+        else:
+            rows, cols = 1, n  # Single row layout for <= 4 graphs
+
+        fig, axes = plt.subplots(rows, cols, figsize=(cols * 6, rows * 4), sharey=sharey)
+
+        # Flatten axes for easy iteration if multi-row layout
+        if n > 1:
+            axes = axes.flatten()
+        else:
+            axes = [axes]  # Ensure axes is a list even for a single subplot
+
+        dict_values_positive_data1, dict_values_negative_data1 = dict_to_dictvalues(data1)
+        dict_values_positive_data2, dict_values_negative_data2 = dict_to_dictvalues(data2)
+
+        for ax, (key, sub_dict), color in zip(axes, data1.items(), colors):
+            probabilities = list(sub_dict.keys())
+            dict_values_for_n_states_positive_data1 = dict_values_positive_data1[key]
+            dict_values_for_n_states_negative_data1 = dict_values_negative_data1[key]
+            
+            dict_values_for_n_states_positive_data2 = dict_values_positive_data2[key]
+            dict_values_for_n_states_negative_data2 = dict_values_negative_data2[key]
+                
+            # Plot the line graph
+            for state_value, values in dict_values_for_n_states_positive_data1.items():
+                ax.plot(probabilities, values, marker='o', alpha=0.75, linewidth=2, markersize=3, label=f'n = {key}, s = {state_value}, positive, {method1}', color='blue')
+                
+            for state_value, values in dict_values_for_n_states_negative_data1.items():
+                ax.plot(probabilities, values, marker='o', alpha=0.75, linewidth=2, markersize=3, label=f'n = {key}, s = {state_value}, negative, {method1}', color='blue')
+                
+            for state_value, values in dict_values_for_n_states_positive_data2.items():
+                ax.plot(probabilities, values, marker='o', alpha=0.75, linewidth=2, markersize=3, label=f'n = {key}, s = {state_value}, positive, {method2}', color='green')
+                
+            for state_value, values in dict_values_for_n_states_negative_data2.items():
+                ax.plot(probabilities, values, marker='o', alpha=0.75, linewidth=2, markersize=3, label=f'n = {key}, s = {state_value}, negative, {method2}', color='green')
+                
+            ax.set_title(f'Number of States => {key}', fontsize=10, fontweight='bold')
+            ax.set_xlabel('Probability (p)', fontsize=10)
+            ax.grid(visible=True, linestyle='--', alpha=0.7)
+            
+            # Improve ticks
+            ax.tick_params(axis='both', which='major', labelsize=9)
+            ax.legend(fontsize=9, loc='upper left')
+
+        # Remove unused subplots if any
+        for i in range(len(data1), len(axes)):
             fig.delaxes(axes[i])
 
         # Centralized y-axis label

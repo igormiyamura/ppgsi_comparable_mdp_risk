@@ -1,10 +1,13 @@
 
 import numpy as np
 from typing import List
+from tqdm import tqdm
 
 from ..residuals.error_metrics import ErrorMetrics
 from ..mss.multiple_sequential_states import MultipleSequentialStates
 from .value_function_calculator import ValueFunctionCalculator
+
+from scipy.optimize import fsolve
 
 class PiecewiseLinearTransformation(ValueFunctionCalculator):
     def __init__(self) -> None:
@@ -30,7 +33,10 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         tuple: Final value function and number of iterations.
         """
         # Verify if alpha is within the valid range
-        assert 0 < alpha <= 1/(1 + abs(k)), "Alpha must be within the range (0, 1/(1 + |k|)]"
+        if alpha is not None:
+            assert 0 < alpha <= 1/(1 + abs(k)), "Alpha must be within the range (0, 1/(1 + |k|)]"
+        else:
+            alpha = 1
         
         EM = ErrorMetrics(_epsilon)
         iteration = 0
@@ -176,12 +182,13 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             return res
 
     def osma_value_function_range_probability(self, p: List[float], c: float, k: float, _verbose: bool = False):
-        print(f"""
-              Calculando valores para os seguintes parâmetros:
-                p: {[round(v, 2) for v in p]} | 
-                c: {c} | 
-                k: {k} |
-              """)
+        if _verbose:
+            print(f"""
+                Calculando valores para os seguintes parâmetros:
+                    p: {[round(v, 2) for v in p]} | 
+                    c: {c} | 
+                    k: {k} |
+                """)
         
         res = {}
         res[1] = {}        
@@ -194,16 +201,17 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         return res
     
     def mss_value_function_range_probability(self, n: List[int], p: List[float], c: float, k: float, alpha: float, gamma: float, _threshold: int, _epsilon: float, _verbose: bool = False, _validate_larger_values: bool = False):
-        print(f"""
-              Calculando valores para os seguintes parâmetros:
-                n: {[v for v in n]} | 
-                p: {[round(v, 2) for v in p]} | 
-                c: {c} | 
-                k: {k} |
-                alpha: {alpha} |
-                threshold: {_threshold} | 
-                epsilon: {_epsilon} | 
-              """)
+        if _verbose:
+            print(f"""
+                Calculando valores para os seguintes parâmetros:
+                    n: {[v for v in n]} | 
+                    p: {[round(v, 2) for v in p]} | 
+                    c: {c} | 
+                    k: {k} |
+                    alpha: {alpha} |
+                    threshold: {_threshold} | 
+                    epsilon: {_epsilon} | 
+                """)
         
         res = {}
         
@@ -229,5 +237,53 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                 if _validate_larger_values: 
                     for state in res[num_states][prob].keys():
                         res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
+                
+        return res
+    
+    def diff_dict_values(self, dict1, dict2):
+        # Ensure both dictionaries have the same keys
+        assert dict1.keys() == dict2.keys(), "Dictionaries must have the same keys"
+        
+        # Sum the values for the same key in both dictionaries
+        summed_values = {key: dict1[key] - dict2[key] for key in dict1}
+        
+        # Sum all the resulting values
+        total_sum = sum(summed_values.values())
+        
+        return total_sum
+    
+    def mss_equivalent_cost_solver(self, n: float, p: float, cr: float, pr: float, k: float, alpha: float, gamma: float, _threshold: float, _epsilon: float, guess_EC: float = 0):
+        def equation(EC, n, p, cr, pr, k, alpha, gamma, _threshold, _epsilon):
+            reference_values = self.mss_value_function(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)[0]
+            values = self.mss_value_function(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)[0]
+            
+            return self.diff_dict_values(reference_values, values)
+        
+        solution = fsolve(equation, guess_EC, args=(n, p, cr, pr, k, alpha, gamma, _threshold, _epsilon))
+        
+        return {0: solution[0]}
+    
+    def run_configuration_region(self, n: List[int], p: List[float], cr: float, pr: float, alpha: float, gamma: float, 
+                                 _threshold: int=1e3, _epsilon: float=1e-3, guess_EC: float = 0):
+        """
+        Run the configuration region for the Exponential Utility Function.
+            This method will run in two parts: (i) run the MSS value function for extreme positive value of lambda, and (ii) run the MSS value function for extreme negative value of lambda.
+        """
+        res = {}
+        
+        for num_states in tqdm(n, desc=" number states", position=0):
+            res[num_states] = {}
+            for prob in tqdm(p, desc=" probability", position=1, leave=False):
+                prob = round(prob, 2)
+                res[num_states][prob] = {}
+                
+                k_positive = 0.99
+                k_negative = -0.99
+                
+                # Run the MSS value function for extreme positive value of lambda
+                res[num_states][prob]['positive'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_positive, alpha, gamma, _threshold, _epsilon, guess_EC=0)
+                
+                # Run the MSS value function for extreme negative value of lambda
+                res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_negative, alpha, gamma, _threshold, _epsilon, guess_EC=1)
                 
         return res
