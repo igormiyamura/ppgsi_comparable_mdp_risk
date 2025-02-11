@@ -11,12 +11,12 @@ from scipy.optimize import fsolve
 
 class PiecewiseLinearTransformation(ValueFunctionCalculator):
     def __init__(self) -> None:
-        pass
+        self.calculated_values = {}
 
     def osma_analytical_value_function(self, p: float, c: float, k: float):
         return {0: (c * (k - 2 * k * p + 1)) / (p * (1 - k))}
 
-    def mss_value_function(self, n: int, p: float, c: float, k: float, alpha: float, gamma: float, _threshold: int, _epsilon: float, _verbose: bool = False):
+    def mss_generic_value_function(self, n: int, p: float, c: float, k: float, alpha: float, gamma: float, _threshold: int, _epsilon: float, _verbose: bool = False):
         """
         Computes the value function for Multiple Sequential States (MSS) with specified parameters.
 
@@ -114,7 +114,43 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             ):
                 break
 
-        return current_values, iteration
+        return current_values
+
+    def mss_value_function(self, n: int, p: float, c: float, k: float, alpha: float, gamma: float = 1, _threshold: int = 10000, _epsilon: float = None, _verbose: bool = False):
+        # Verify if alpha is within the valid range
+        # print(f'Processando para: n: {n}, p: {p}, c: {c}, k: {k}, alpha: {alpha}, gamma: {gamma}, _threshold: {_threshold}, _epsilon: {_epsilon}')
+        
+        if alpha is not None:
+            assert 0 < alpha <= 1/(1 + abs(k)), "Alpha must be within the range (0, 1/(1 + |k|)]"
+        else:
+            alpha = 1
+            
+        # Define Transition Matrix
+        T = np.hstack([
+            np.vstack([(1 - p) * np.ones((n, 1)), [0]]), 
+            np.vstack([p * np.eye(n), np.append(np.zeros(n - 1), 1)])
+        ])
+        
+        # Cria vetor de Custo
+        C = np.append(np.repeat(c, n), 0)
+        
+        # Cria vetor da funcao valor
+        _V = np.zeros(n + 1)
+        V = np.zeros(n + 1)
+        
+        for _ in range(_threshold):
+            delta = np.tile(-V + C, (n + 1, 1)).T + np.tile(V, (n + 1, 1))
+            pos = delta > 0
+            neg = delta < 0
+            _V = V.copy()
+            V = V + alpha * np.sum((1 + k) * pos * T * delta + (1 - k) * neg * T * delta, axis=1)
+            
+            if max(abs(_V - V)) < _epsilon:
+                # print(f'Convergiu com {_} passos')
+                # print()
+                break
+            
+        return {i: V[i] for i in range(len(V))}
 
     def mss_analytical_value_function(self, n: int, p: float, c: float, k: float):
         if n == 1:
@@ -219,7 +255,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             res[num_states] = {}
             for prob in p:
                 prob = round(prob, 2)
-                res[num_states][prob], i = self.mss_value_function(num_states, prob, c, k, alpha, gamma, _threshold, _epsilon, _verbose)
+                res[num_states][prob] = self.mss_value_function(num_states, prob, c, k, alpha, gamma, _threshold, _epsilon, _verbose)
                 if _validate_larger_values: 
                     for state in res[num_states][prob].keys():
                         res[num_states][prob][state] = np.nan if res[num_states][prob][state] > 1e3 else res[num_states][prob][state]
@@ -254,8 +290,15 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
     
     def mss_equivalent_cost_solver(self, n: float, p: float, cr: float, pr: float, k: float, alpha: float, gamma: float, _threshold: float, _epsilon: float, guess_EC: float = 0):
         def equation(EC, n, p, cr, pr, k, alpha, gamma, _threshold, _epsilon):
-            reference_values = self.mss_value_function(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)[0]
-            values = self.mss_value_function(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)[0]
+            if (n, pr, cr, k, alpha, gamma, _threshold, _epsilon) not in self.calculated_values.keys():
+                self.calculated_values[(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)] = self.mss_value_function(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)
+                
+            reference_values = self.calculated_values[(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)]
+            
+            if (n, p, EC[0], k, alpha, gamma, _threshold, _epsilon) not in self.calculated_values.keys():
+                self.calculated_values[(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)] = self.mss_value_function(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)
+            
+            values = self.calculated_values[(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)]
             
             return self.diff_dict_values(reference_values, values)
         
@@ -281,9 +324,9 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                 k_negative = -0.99
                 
                 # Run the MSS value function for extreme positive value of lambda
-                res[num_states][prob]['positive'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_positive, alpha, gamma, _threshold, _epsilon, guess_EC=0)
+                res[num_states][prob]['positive'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_positive, 1 / (1 + abs(k_positive)), gamma, _threshold, _epsilon, guess_EC=0)
                 
                 # Run the MSS value function for extreme negative value of lambda
-                res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_negative, alpha, gamma, _threshold, _epsilon, guess_EC=1)
+                res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_negative, 1 / (1 + abs(k_negative)), gamma, _threshold, _epsilon, guess_EC=1)
                 
         return res
