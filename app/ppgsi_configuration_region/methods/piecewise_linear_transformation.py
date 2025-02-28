@@ -152,71 +152,12 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
             
         return {i: V[i] for i in range(len(V))}
 
-    def mss_analytical_value_function(self, n: int, p: float, c: float, k: float):
-        if n == 1:
-            return self.osma_analytical_value_function(p, c, k)
-        elif n == 2:
-            def compute_V0(c, p, k, v1):
-                # Numerator components
-                numerator = c * (k - 2 * p * k + 1)
-                denominator = p * (1 - k)
-                
-                # Compute V0
-                V0 = (numerator / denominator) + v1
-                return V0
-            
-            def compute_V1(c, p, k):
-                # Numerator components
-                term1 = p**2 * (1 - k)**2
-                term2 = (1 - p) * (1 + k) * (1 + k + p - 3 * p * k)
-                
-                # Final numerator
-                numerator = c * (term1 + term2)
-                
-                # Denominator
-                denominator = p**2 * (1 - k)**2
-                
-                # Compute V1
-                V1 = numerator / denominator
-                return V1
-
-            v1 = compute_V1(c, p, k)
-            v0 = compute_V0(c, p, k, v1)
-            
-            return {0: v0, 1: v1}
-        elif n == 3: # WIP - AINDA COM ERRO
-            def calculate_V0(c, p, k):
-                # Calculate V0 using the derived formula
-                term1 = (1 - p) * (1 + k) * c
-                term2 = (1 - k) * p
-                
-                V0 = term1 / term2 + c + calculate_V1(c, p, k)
-                return V0
-
-            def calculate_V1(c, p, k):
-                # Calculate V1 using the derived formula
-                term1 = (1 - p) * (1 + k) * (c + calculate_V0(c, p, k))
-                return V1
-
-            def calculate_V2(c, p, k):
-                # Calculate V2 using the derived formula
-                term1 = c
-                term2 = ((1 - p) * (1 + k)) / (p * (1 - k))
-                term3 = 2 * c + (c * (k - 2 * p * k + 1)) / (p * (1 - k)) + ((1 - p) * (1 + k) * c) / (p * (1 - k)) + ((1 - p) * (1 + k) * (k - 2 * p * k + 1)) / (p * (1 - k) ** 2)
-                V2 = term1 + term2 * term3
-                return V2
-            
-            v2 = calculate_V2(c, p, k)
-            v1 = calculate_V1(c, p, k)
-            v0 = calculate_V0(c, p, k)
-            
-            return {0: v0, 1: v1, 2: v2}
-        else:
-            res = {}
-            for _n in range(n):
-                res[_n] = np.nan
-            return res
-
+    def mss_analytical_value_function(self, n: int, p: float, c: float, k: float):        
+        PK = (p) * (1-k) / ((p) * (1-k) + (1-p) * (1+k))
+        ONE_PK = (1-p) * (1+k) / ((p) * (1-k) + (1-p) * (1+k))
+        
+        return {0: c * (1 - PK**n) / ONE_PK / PK**n}
+        
     def osma_value_function_range_probability(self, p: List[float], c: float, k: float, _verbose: bool = False):
         if _verbose:
             print(f"""
@@ -250,6 +191,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                 """)
         
         res = {}
+        calculate_alpha = 1 / (1 + abs(k)) if alpha is None else alpha
         
         for num_states in n:
             res[num_states] = {}
@@ -288,15 +230,22 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         
         return total_sum
     
-    def mss_equivalent_cost_solver(self, n: float, p: float, cr: float, pr: float, k: float, alpha: float, gamma: float, _threshold: float, _epsilon: float, guess_EC: float = 0):
+    def mss_equivalent_cost_solver(self, n: float, p: float, cr: float, pr: float, k: float, alpha: float, gamma: float, analytical: bool, _threshold: float, _epsilon: float, guess_EC: float = 0):
         def equation(EC, n, p, cr, pr, k, alpha, gamma, _threshold, _epsilon):
             if (n, pr, cr, k, alpha, gamma, _threshold, _epsilon) not in self.calculated_values.keys():
-                self.calculated_values[(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)] = self.mss_value_function(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)
+                if analytical:
+                    self.calculated_values[(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)] = self.mss_analytical_value_function(n, pr, cr, k)
+                else:
+                    self.calculated_values[(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)] = self.mss_value_function(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)
                 
             reference_values = self.calculated_values[(n, pr, cr, k, alpha, gamma, _threshold, _epsilon)]
             
             if (n, p, EC[0], k, alpha, gamma, _threshold, _epsilon) not in self.calculated_values.keys():
-                self.calculated_values[(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)] = self.mss_value_function(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)
+                if analytical:
+                    self.calculated_values[(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)] = self.mss_analytical_value_function(n, p, EC[0], k)
+                else:
+                    self.calculated_values[(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)] = self.mss_value_function(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)
+                
             
             values = self.calculated_values[(n, p, EC[0], k, alpha, gamma, _threshold, _epsilon)]
             
@@ -306,7 +255,7 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
         
         return {0: solution[0]}
     
-    def run_configuration_region(self, n: List[int], p: List[float], cr: float, pr: float, alpha: float, gamma: float, 
+    def run_configuration_region(self, n: List[int], p: List[float], cr: float, pr: float, alpha: float, gamma: float, analytical: bool,
                                  _threshold: int=1e3, _epsilon: float=1e-3, guess_EC: float = 0):
         """
         Run the configuration region for the Exponential Utility Function.
@@ -324,9 +273,80 @@ class PiecewiseLinearTransformation(ValueFunctionCalculator):
                 k_negative = -0.99
                 
                 # Run the MSS value function for extreme positive value of lambda
-                res[num_states][prob]['positive'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_positive, 1 / (1 + abs(k_positive)), gamma, _threshold, _epsilon, guess_EC=0)
+                res[num_states][prob]['positive'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_positive, 1 / (1 + abs(k_positive)), gamma, analytical, _threshold, _epsilon, guess_EC=0)
                 
                 # Run the MSS value function for extreme negative value of lambda
-                res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_negative, 1 / (1 + abs(k_negative)), gamma, _threshold, _epsilon, guess_EC=1)
+                res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, k_negative, 1 / (1 + abs(k_negative)), gamma, analytical, _threshold, _epsilon, guess_EC=1)
                 
         return res
+    
+    def run_solver_for_number_states(self, n: List[int], p: List[float], c: float, pr: float, nr: float, k: float, alpha: float, gamma: float, analytical: bool=False, _threshold: int=1e3, _epsilon: float=1e-3, _quiet: bool=True):
+        # Negative Values
+        if analytical:
+            values = self.mss_analytical_value_function_range_probability(n, p, c, k)
+        else:
+            values = self.mss_value_function_range_probability(n, p, c, k, alpha, gamma, _threshold, _epsilon)
+        values_for_each_probability = {}
+        
+        for num_states in values.keys():
+            for prob in values[num_states].keys():
+                if prob not in values_for_each_probability.keys(): values_for_each_probability[prob] = np.array([])
+                values_for_each_probability[prob] = np.append(values_for_each_probability[prob], values[num_states][prob][0])
+                
+        reference_value = values[nr][pr][0]
+        
+        v = np.array([])
+        for prob in p:
+            prob = prob.round(2)
+            try:
+                max_number = np.argmax(values_for_each_probability[prob][values_for_each_probability[prob] - reference_value < 0]) + 1
+            except:
+                max_number = 1
+            v = np.append(v, max_number)
+            
+        print(reference_value, values_for_each_probability)
+        res = {}
+        res['positive'] = v
+            
+        return res
+
+    def run_configuration_region_number_states(self, n: List[int], p: List[float], c: float, pr: float, nr: float, alpha: float=1, gamma: float=1, analytical: bool=False, _threshold: int=1e3, _epsilon: float=1e-3, _quiet: bool=True):
+        def get_values(analytical, n, p, c, k, alpha, gamma, _threshold, _epsilon):
+            if analytical:
+                return self.mss_analytical_value_function_range_probability(n, p, c, k)
+            else:
+                return self.mss_value_function_range_probability(n, p, c, k, alpha, gamma, _threshold, _epsilon)
+
+        positive_values = get_values(analytical, n, p, c, 0.99, alpha, gamma, _threshold, _epsilon)
+        negative_values = get_values(analytical, n, p, c, -0.99, alpha, gamma, _threshold, _epsilon)
+
+        def extract_values(values):
+            values_for_each_probability = {}
+            for num_states in values.keys():
+                for prob in values[num_states].keys():
+                    if prob not in values_for_each_probability.keys():
+                        values_for_each_probability[prob] = np.array([])
+                    values_for_each_probability[prob] = np.append(values_for_each_probability[prob], values[num_states][prob][0])
+            return values_for_each_probability
+
+        positive_values_for_each_probability = extract_values(positive_values)
+        negative_values_for_each_probability = extract_values(negative_values)
+
+        positive_reference_value = positive_values[nr][pr][0]
+        negative_reference_value = negative_values[nr][pr][0]
+
+        def calculate_max_number(values_for_each_probability, reference_value):
+            result = np.array([])
+            for prob in p:
+                prob = round(prob, 2)
+                try:
+                    max_number = np.argmax(values_for_each_probability[prob][values_for_each_probability[prob] - reference_value < 0]) + 1
+                except:
+                    max_number = 1
+                result = np.append(result, max_number)
+            return result
+
+        pos = calculate_max_number(positive_values_for_each_probability, positive_reference_value)
+        neg = calculate_max_number(negative_values_for_each_probability, negative_reference_value)
+
+        return {'positive': pos, 'negative': neg}

@@ -91,11 +91,17 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
 
     def mss_value_function_range_probability(self, n: List[int], p: List[float], c: float, vl_lambda: float, _threshold: int, _epsilon: float, _alpha: float=1, _quiet: bool=True):
         res = {}
+        run_lambda_extreme = True if vl_lambda is None else False 
         
         for num_states in n:
             res[num_states] = {}
             for prob in p:
                 prob = round(prob, 2)
+                
+                if run_lambda_extreme:
+                    vl_lambda = LambdaExtreme().solver_lambda_extreme_mss(num_states, prob, c)[0] - 0.001
+                    # print(num_states, prob, vl_lambda)
+                
                 res[num_states][prob] = self.mss_value_function(num_states, prob, c, vl_lambda, _threshold, _epsilon, _alpha, _quiet)
                 
                 for state in res[num_states][prob].keys():
@@ -105,11 +111,16 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
     
     def mss_analytical_value_function_range_probability(self, n: List[int], p: List[float], c: float, vl_lambda: float):
         res = {}
+        run_lambda_extreme = True if vl_lambda is None else False 
         
         for num_states in n:
             res[num_states] = {}
             for prob in p:
                 prob = round(prob, 2)
+                
+                if run_lambda_extreme:
+                    vl_lambda = LambdaExtreme().solver_lambda_extreme_mss(num_states, prob, c)[0] - 0.001
+                
                 res[num_states][prob] = self.mss_analytical_value_function(num_states, prob, c, vl_lambda)
                 
                 for state in res[num_states][prob].keys():
@@ -184,6 +195,88 @@ class ExponentialUtilityFunction(ValueFunctionCalculator):
                     res[num_states][prob]['negative'] = self.mss_equivalent_cost_solver(num_states, prob, cr, pr, -1e5, _threshold, _epsilon, _alpha, _quiet)
                 
         return res
+
+    def run_configuration_region_number_states(self, n: List[int], p: List[float], c: float, pr: float, nr: float, analytical: bool=False, _threshold: int=1e3, _epsilon: float=1e-3, _alpha: float=1, _quiet: bool=True):
+        if analytical:
+            # Positive Values
+            positive_values = self.mss_analytical_value_function_range_probability(n, p, c, None)
+            
+            # Negative Values
+            negative_values = self.mss_analytical_value_function_range_probability(n, p, c, -1e5)
+        else:
+            # Positive Values
+            positive_values = self.mss_value_function_range_probability(n, p, c, None, _threshold, _epsilon)
+            
+            # Negative Values
+            negative_values = self.mss_value_function_range_probability(n, p, c, -1e5, _threshold, _epsilon)
+        
+        positive_values_for_each_probability = {}
+        negative_values_for_each_probability = {}
+        
+        for num_states in positive_values.keys():
+            for prob in positive_values[num_states].keys():
+                if prob not in positive_values_for_each_probability.keys(): positive_values_for_each_probability[prob] = np.array([])
+                positive_values_for_each_probability[prob] = np.append(positive_values_for_each_probability[prob], positive_values[num_states][prob][0])
+                
+        for num_states in negative_values.keys():
+            for prob in negative_values[num_states].keys():
+                if prob not in negative_values_for_each_probability.keys(): negative_values_for_each_probability[prob] = np.array([])
+                negative_values_for_each_probability[prob] = np.append(negative_values_for_each_probability[prob], negative_values[num_states][prob][0])
+                
+        positive_reference_value = positive_values[nr][pr][0]
+        negative_reference_value = negative_values[nr][pr][0]
+        
+        pos = np.array([])
+        for prob in p:
+            prob = prob.round(2)
+            try:
+                print(positive_values_for_each_probability[prob][positive_values_for_each_probability[prob] - positive_reference_value < 0])
+                max_number = np.argmax(positive_values_for_each_probability[prob][positive_values_for_each_probability[prob] - positive_reference_value < 0]) + 1
+            except:
+                max_number = 1
+            pos = np.append(pos, max_number)
+            
+        neg = np.array([])
+        for prob in p:
+            prob = prob.round(2)
+            try:
+                max_number = np.argmax(negative_values_for_each_probability[prob][negative_values_for_each_probability[prob] - negative_reference_value < 0]) + 1
+            except:
+                max_number = 1
+            neg = np.append(neg, max_number)
+            
+        res = {}
+        res['positive'] = pos
+        res['negative'] = neg
+            
+        return res
+    
+    def run_solver_for_number_states(self, n: List[int], p: List[float], c: float, pr: float, nr: float, vl_lambda: float, analytical: bool=False, _threshold: int=1e3, _epsilon: float=1e-3, _alpha: float=1, _quiet: bool=True):
+        # Negative Values
+        values = self.mss_value_function_range_probability(n, p, c, vl_lambda, _threshold, _epsilon)
+        values_for_each_probability = {}
+        
+        for num_states in values.keys():
+            for prob in values[num_states].keys():
+                if prob not in values_for_each_probability.keys(): values_for_each_probability[prob] = np.array([])
+                values_for_each_probability[prob] = np.append(values_for_each_probability[prob], values[num_states][prob][0])
+                
+        reference_value = values[nr][pr][0]
+        
+        v = np.array([])
+        for prob in p:
+            prob = prob.round(2)
+            try:
+                max_number = np.argmax(values_for_each_probability[prob][values_for_each_probability[prob] - reference_value < 0]) + 1
+            except:
+                max_number = 1
+            v = np.append(v, max_number)
+            
+        res = {}
+        res['positive'] = v
+            
+        return res
+        
 
 class LambdaExtreme:
     def __init__(self) -> None:

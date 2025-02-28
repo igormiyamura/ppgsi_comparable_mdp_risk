@@ -147,7 +147,7 @@ class MSSPlots:
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.9)  # Adjust spacing
         plt.show()
         
-    def plot_configuration_region(self, data, sharey=True, plot_only_first_state: bool = True):
+    def plot_configuration_region(self, data, sharey=True, plot_only_first_state: bool = True, y_label: str = 'Value'):
         # Use a color palette
         colors = sns.color_palette("tab10", len(data))
 
@@ -218,14 +218,43 @@ class MSSPlots:
             fig.delaxes(axes[i])
 
         # Centralized y-axis label
-        fig.text(0.04, 0.5, 'Value', va='center', rotation='vertical', fontsize=12, fontweight='bold')
+        fig.text(0.04, 0.5, y_label, va='center', rotation='vertical', fontsize=12, fontweight='bold')
 
         # Adjust layout for better spacing
         plt.tight_layout()
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.9)  # Adjust spacing
         plt.show()
         
-    def plot_compare_configuration_region(self, data1, data2, method1='Method 1', method2='Method 2', sharey=True, plot_only_first_state: bool = True):
+    def plot_configuration_region_arrays(self, data, x_values, sharey=True, plot_only_first_state: bool = True, y_label: str = 'Value'):
+        # Use a color palette
+        colors = sns.color_palette("tab10", len(data))
+        # Initialize figure
+        fig, ax = plt.subplots(figsize=(10, 6), sharey=sharey)
+
+        # Plot the line graph
+        if 'positive' in data:
+            ax.plot(x_values, data['positive'], marker='o', linewidth=2, markersize=6, label=f'positive', color='blue')
+            
+        if 'negative' in data:
+            ax.plot(x_values, data['negative'], marker='o', linewidth=2, markersize=6, label=f'negative', color='red')
+            
+        ax.set_title('Configuration Region', fontsize=10, fontweight='bold')
+        ax.set_xlabel('Probability (p)', fontsize=10)
+        ax.grid(visible=True, linestyle='--', alpha=0.7)
+        
+        # Improve ticks
+        ax.tick_params(axis='both', which='major', labelsize=9)
+        ax.legend(fontsize=9, loc='upper left')
+
+        # Centralized y-axis label
+        fig.text(0.04, 0.5, y_label, va='center', rotation='vertical', fontsize=12, fontweight='bold')
+
+        # Adjust layout for better spacing
+        plt.tight_layout()
+        plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.9)  # Adjust spacing
+        plt.show()  
+            
+    def plot_compare_configuration_region(self, data1, data2, method1='Method 1', method2='Method 2', sharey=True, plot_only_first_state: bool = True, y_label: str = 'Value'):
         def dict_to_dictvalues(data):
             dict_values_positive = {}
             dict_values_negative = {}
@@ -310,7 +339,7 @@ class MSSPlots:
             fig.delaxes(axes[i])
 
         # Centralized y-axis label
-        fig.text(0.04, 0.5, 'Value', va='center', rotation='vertical', fontsize=12, fontweight='bold')
+        fig.text(0.04, 0.5, y_label, va='center', rotation='vertical', fontsize=12, fontweight='bold')
 
         # Adjust layout for better spacing
         plt.tight_layout()
